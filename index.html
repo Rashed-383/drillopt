@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DrillOpt — Optimum Drilling Parameters & Liner Casing Assistant</title>
+<meta name="description" content="Optimum drilling parameters (WOB, RPM, hydraulics, ROP) by formation, bit size and depth to 5000 m, plus a step-by-step liner casing job assistant.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⛏</span>
+    <div>
+      <h1>DrillOpt</h1>
+      <p class="tagline">Optimum Drilling Parameters &amp; Liner Casing Assistant</p>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="calc">Parameters Calculator</button>
+    <button class="tab" data-tab="dir">Directional &amp; Horizontal</button>
+    <button class="tab" data-tab="liner">Liner Casing Job Guide</button>
+    <button class="tab" data-tab="ref">Reference Tables</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ CALCULATOR TAB ============ -->
+<section id="tab-calc" class="tabpane active">
+  <div class="panel inputs">
+    <h2>Well &amp; Bit Inputs</h2>
+    <div class="grid">
+      <label>Well profile
+        <select id="in-welltype">
+          <option value="vertical" selected>Vertical</option>
+          <option value="directional">Directional</option>
+          <option value="horizontal">Horizontal</option>
+        </select>
+      </label>
+      <label>Bit size
+        <select id="in-bitsize"></select>
+      </label>
+      <label>Bit type
+        <select id="in-bittype">
+          <option value="pdc">PDC</option>
+          <option value="mt">Tricone — Milled Tooth</option>
+          <option value="tci">Tricone — TCI (Insert)</option>
+        </select>
+      </label>
+      <label>Formation type
+        <select id="in-formation"></select>
+      </label>
+      <label>Depth (m TVD)
+        <input id="in-depth" type="number" min="0" max="5000" step="50" value="1500">
+      </label>
+      <label>Mud weight (ppg)
+        <input id="in-mw" type="number" min="7" max="20" step="0.1" value="10.0">
+      </label>
+      <label>Drill pipe OD (in)
+        <select id="in-dp">
+          <option value="3.5">3½″</option>
+          <option value="4.5">4½″</option>
+          <option value="5" selected>5″</option>
+          <option value="5.5">5½″</option>
+          <option value="6.625">6⅝″</option>
+        </select>
+      </label>
+    </div>
+    <p class="hint">Recommendations are engineering rule-of-thumb starting points (offset-well practice and standard hydraulics models). Always calibrate against offset wells, bit vendor specs and the mud program.</p>
+  </div>
+
+  <div class="results">
+    <div class="card">
+      <h3>Weight on Bit</h3>
+      <div class="big" id="r-wob">—</div>
+      <div class="sub" id="r-wob-sub"></div>
+    </div>
+    <div class="card">
+      <h3>Rotary Speed</h3>
+      <div class="big" id="r-rpm">—</div>
+      <div class="sub" id="r-rpm-sub"></div>
+    </div>
+    <div class="card">
+      <h3>Flow Rate / Hydraulics</h3>
+      <div class="big" id="r-flow">—</div>
+      <div class="sub" id="r-flow-sub"></div>
+    </div>
+    <div class="card">
+      <h3>Estimated ROP</h3>
+      <div class="big" id="r-rop">—</div>
+      <div class="sub" id="r-rop-sub"></div>
+    </div>
+    <div class="card wide">
+      <h3>Nozzle Selection &amp; Hydraulic Horsepower</h3>
+      <div class="sub" id="r-nozzles"></div>
+    </div>
+    <div class="card wide">
+      <h3>Operational Notes</h3>
+      <ul class="notes" id="r-notes"></ul>
+    </div>
+    <div class="card wide" id="r-warnings-card" hidden>
+      <h3>⚠ Warnings</h3>
+      <ul class="notes warn" id="r-warnings"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIRECTIONAL TAB ============ -->
+<section id="tab-dir" class="tabpane">
+  <div class="panel">
+    <h2>Directional &amp; Horizontal Drilling</h2>
+    <p class="hint">Pick Directional or Horizontal under Well profile in the calculator and the parameters adjust for weight-transfer losses, higher cleaning flow and lower ROP. The practice behind those numbers:</p>
+  </div>
+  <div class="results" id="dir-guide"></div>
+</section>
+
+<!-- ============ LINER GUIDE TAB ============ -->
+<section id="tab-liner" class="tabpane">
+  <div class="liner-head">
+    <h2>Liner Casing Job — Step-by-Step Assistant</h2>
+    <p>A field checklist for a typical production-liner job with a hydraulic-set hanger and liner-top packer: planning → running → setting → cementing → testing. Check steps off as you go; progress is saved on this device.</p>
+    <div class="progress-wrap"><div class="progress" id="liner-progress"></div></div>
+    <div class="progress-label"><span id="liner-progress-text"></span>
+      <button class="linkbtn" id="liner-reset">Reset checklist</button>
+    </div>
+  </div>
+  <div id="liner-phases"></div>
+</section>
+
+<!-- ============ REFERENCE TAB ============ -->
+<section id="tab-ref" class="tabpane">
+  <h2>Quick Reference</h2>
+  <div class="refgrid">
+    <div class="card wide">
+      <h3>Common Bit Sizes &amp; Typical Applications</h3>
+      <table id="ref-bits"></table>
+    </div>
+    <div class="card wide">
+      <h3>Formation Drillability Classes</h3>
+      <table id="ref-formations"></table>
+    </div>
+    <div class="card wide">
+      <h3>Hydraulics Formulas Used</h3>
+      <table id="ref-formulas"></table>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>DrillOpt — engineering guidelines for drilling optimization. Verify all parameters against offset data, vendor IADC bit records and your well plan.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
