@@ -132,6 +132,7 @@ function calc(){
   /* Flow: 35–55 gpm per inch of bit diameter, boosted for high-angle cleaning */
   let qMin = 35*D*adj.flow, qMax = 55*D*adj.flow;
   if(D<=6.5){ qMin=Math.min(qMin,260*adj.flow); qMax=Math.min(qMax,360*adj.flow); }
+  qMin=Math.round(qMin/5)*5; qMax=Math.round(qMax/5)*5;
   const Q = Math.round((qMin+qMax)/2/10)*10;       // recommended gpm
 
   /* Annular velocity at recommended Q: AV = 24.51*Q/(Dh²−Dp²) ft/min */
