@@ -77,6 +77,19 @@ const WELL_ADJ = {
   horizontal: {wob:0.75, rpm:0.85, flow:1.2, rop:0.7, avMin:150}
 };
 
+/* Continuous adjustment from inclination (deg from vertical): interpolates
+   between vertical (0 deg), directional (45 deg) and horizontal (90 deg) anchors */
+function adjFor(inc){
+  inc=Math.min(90,Math.max(0,inc));
+  const A=[[0,WELL_ADJ.vertical],[45,WELL_ADJ.directional],[90,WELL_ADJ.horizontal]];
+  const i=inc<=45?0:1, a0=A[i], a1=A[i+1];
+  const t=(inc-a0[0])/(a1[0]-a0[0]), r={};
+  Object.keys(WELL_ADJ.vertical).forEach(k=>{r[k]=a0[1][k]+(a1[1][k]-a0[1][k])*t;});
+  return r;
+}
+function profileFor(inc){ return inc<5?"vertical":(inc<80?"directional":"horizontal"); }
+const PROFILE_DEFAULT_INC={vertical:0,directional:45,horizontal:90};
+
 /* --- element refs --- */
 const $ = id => document.getElementById(id);
 const selBit = $("in-bitsize"), selFm = $("in-formation");
@@ -100,8 +113,12 @@ function calc(){
   const Z   = Math.min(5000, Math.max(0, parseFloat($("in-depth").value)||0)); // m
   const MW  = parseFloat($("in-mw").value)||10;    // ppg
   const DP  = parseFloat($("in-dp").value);        // in
-  const WT  = $("in-welltype").value;               // well profile
-  const adj = WELL_ADJ[WT] || WELL_ADJ.vertical;
+  let INC = parseFloat($("in-inc").value); if(isNaN(INC)) INC=0;
+  INC = Math.min(90, Math.max(0, INC));            // inclination, deg from vertical
+  const WT  = profileFor(INC);                     // well profile derived from angle
+  const adj = adjFor(INC);
+  const incR = INC*Math.PI/180;
+  const wtFrac = Math.round(100*adj.wob);          // % of surface weight reaching bit (model)
 
   /* Depth compaction + well-profile adjustment */
   const wobF  = (1 + 0.15*(Z/5000)) * adj.wob;
@@ -136,7 +153,7 @@ function calc(){
 
   /* --- render --- */
   $("r-wob").textContent = `${Math.round(wobMin)}–${Math.round(wobMax)} klb`;
-  $("r-wob-sub").innerHTML = `${num(wobPerIn[0]*wobF)}–${num(wobPerIn[1]*wobF)} klb/in × ${D}″ bit (${BIT_LABELS[bt]})`;
+  $("r-wob-sub").innerHTML = `${num(wobPerIn[0]*wobF)}–${num(wobPerIn[1]*wobF)} klb/in × ${D}″ bit (${BIT_LABELS[bt]}) · inclination ${num(INC)}° (${wtFrac}% weight transfer)`;
   $("r-rpm").textContent = `${rpm[0]}–${rpm[1]} RPM`;
   $("r-rpm-sub").innerHTML = `${BIT_LABELS[bt]} in ${fm.drill.toLowerCase()} formation`;
   $("r-flow").textContent = `${qMin}–${qMax} gpm`;
@@ -149,6 +166,9 @@ function calc(){
 
   /* notes */
   const notes = [...fm.notes];
+  notes.unshift(`Inclination ${num(INC)}° (${WT}): weight transfer ≈ ${wtFrac}% of vertical, flow +${Math.round((adj.flow-1)*100)}%, ROP ×${adj.rop.toFixed(2)}, rotary speed ×${adj.rpm.toFixed(2)}, minimum annular velocity ${Math.round(adj.avMin)} ft/min.`);
+  if(INC>=30 && INC<=60) notes.push("30–60° is the worst range for cuttings beds (they slide back and avalanche) — rotate and sweep regularly.");
+  if(INC>=65) notes.push("High angle: most string weight rests on the low side; use rotation, agitators and lighter BHA to keep weight transfer to the bit.");
   if(WT==="directional") notes.push("Directional well: values include weight-transfer losses and +10% flow for cleaning. Keep annular velocity above 120 ft/min and trend torque & drag.");
   if(WT==="horizontal") notes.push("Horizontal/high-angle: values include weight-transfer losses and +20% flow. Target ≥150 ft/min annular velocity, rotate 120+ RPM where possible, pump regular high-vis sweeps against cuttings beds.");
   if(AV < adj.avMin) notes.push(`Annular velocity ${Math.round(AV)} ft/min is below the ${adj.avMin} ft/min this profile needs — raise flow rate or expect poor hole cleaning.`);
@@ -172,8 +192,15 @@ function calc(){
   else wc.hidden=true;
 }
 
-["in-bitsize","in-bittype","in-formation","in-depth","in-mw","in-dp","in-welltype"]
-  .forEach(id=>$(id).addEventListener("input",calc));
+["in-bitsize","in-bittype","in-formation","in-depth","in-mw","in-dp","in-inc"]
+  .forEach(id=>$(id).addEventListener("input",()=>{
+    if(id==="in-inc") $("in-welltype").value=profileFor(parseFloat($("in-inc").value)||0);
+    calc();
+  }));
+$("in-welltype").addEventListener("change",()=>{
+  $("in-inc").value=PROFILE_DEFAULT_INC[$("in-welltype").value];
+  calc();
+});
 
 /* --- reference tables --- */
 $("ref-bits").innerHTML = "<tr><th>Size</th><th>Typical application</th></tr>" +
